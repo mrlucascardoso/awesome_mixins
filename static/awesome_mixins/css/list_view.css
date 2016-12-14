@@ -1,0 +1,12 @@
+th a, th a:visited, th a:link, th a:hover {
+  text-decoration: none;
+  color: #333; }
+
+td a, td a:visited, td a:link {
+  text-decoration: none;
+  color: #333; }
+
+td a:hover {
+  text-decoration: underline; }
+
+/*# sourceMappingURL=list_view.css.map */

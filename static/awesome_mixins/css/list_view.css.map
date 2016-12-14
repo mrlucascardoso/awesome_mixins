@@ -1,0 +1,7 @@
+{
+"version": 3,
+"mappings": "AAAA,yCAA0C;EACxC,eAAe,EAAE,IAAI;EACrB,KAAK,EAAE,IAAI;;AAGb,6BAA8B;EAC5B,eAAe,EAAE,IAAI;EACrB,KAAK,EAAE,IAAI;;AAEb,UAAU;EACR,eAAe,EAAE,SAAS",
+"sources": ["../sass/list_view.sass"],
+"names": [],
+"file": "list_view.css"
+}
