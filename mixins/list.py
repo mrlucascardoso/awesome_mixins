@@ -25,8 +25,10 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
     order_tags = None
     search_default = None
     _active_tag = None
-    add_btn = True
     default_order = None
+    add_btn = True
+    add_button_url = '#'
+    add_button_name = 'Add'
 
     def get_queryset(self):
         # import pdb; pdb.set_trace()
@@ -108,7 +110,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
         return super(ListMixin, self).render_to_response(context, **response_kwargs)
 
     def get_ajax(self, request, *args, **kwargs):
-        json_dict = {self.json_list_name: [obj.serialize() for obj in kwargs['object_list']]}
+        json_dict = {self.get_json_list_name(): [obj.serialize() for obj in kwargs['object_list']]}
         paginador = kwargs['paginator'] if 'paginator' in kwargs else None
         num_pages = 1
         if paginador:
@@ -118,11 +120,11 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
         return self.render_json_response(json_dict)
 
     def as_table(self):
-        output = []
-        output.append(self._header())
-        output.append(self._body())
-        output.append(self._footer())
-        return mark_safe('\n'.join(output))
+        return mark_safe('\n'.join([
+            self._header(),
+            self._body(),
+            self._footer()
+        ]))
 
     def _header(self):
         fdiv = '</div>'
@@ -138,7 +140,10 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                 output.append('<div class="col-xs-12 col-sm-6 col-md-6">')
             output.append('<div class="input-group input-group-sm">')
 
-            string_search = '<input id="busca" type="text" class="form-control" placeholder="Busca por {placeholder}" style="height: 38px;">'
+            string_search = """
+            <input id="busca" type="text" class="form-control"
+                    placeholder="Busca por {placeholder}" style="height: 38px;">
+            """
             if self._active_tag:
                 string_search = string_search.format(placeholder=self._active_tag[2])
             else:
@@ -146,23 +151,24 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
 
             output.append(string_search)
             output.append('<span class="input-group-btn">')
-            output.append('<button type="button" onclick="Busca()" class="btn btn-default" style="height: 38px;"><i class="fa fa-search"></i></button>')
+            output.append("""
+                <button type="button" onclick="Busca()" class="btn btn-default" style="height: 38px;">
+                    <i class="glyphicon glyphicon-search"></i>
+                </button>
+            """)
             output.append('</span>')
             output.append(fdiv)
             output.append(fdiv)
 
-            # meio
-            # output.append('<div class="col-xs-2">')
-            # output.append(fdiv)
-
-            # Botão de adicionar
+            # Add button
             if self.add_btn:
                 output.append('<div class="col-xs-6">')
-                url = reverse_lazy(self.model.__name__.lower() + '-create')
-                output.append("""<a id="adicionar-button" class="btn btn-flat btn-lg btn-primary
+                output.append("""<a id="adicionar-button" class="btn btn-lg btn-primary
                  pull-right"
-
-                 href="{url}"><i class="fa fa-plus"></i> Criar Pedido</a>""".format(url=url))
+                 href="{url}"><i class="fa fa-plus"></i>{name_button}</a>""".format(
+                    url=self.add_button_url,
+                    name_button=self.add_button_name
+                ))
                 output.append(fdiv)
 
             output.append(fdiv)
@@ -174,13 +180,15 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
         output = []
         if self.order_tags:
             context = self.get_context_data()
-            arrow_up = '<i class="fa fa-arrow-up" style="color: red"></i>'
-            arrow_down = '<i class="fa fa-arrow-down" style="color: limegreen"></i>'
+            arrow_up = '<i class="glyphicon glyphicon-arrow-up" style="color: red"></i>'
+            arrow_down = '<i class="glyphicon glyphicon-arrow-down" style="color: limegreen"></i>'
             normal_row = """<th {width}><a href="?{tag}={ordering}">{name} {arrow}</a></th>"""
 
             output.append('<div class="box-body table-responsive no-padding">')
             table_id = self.model.__name__.lower() + '_table'
-            output.append('<table id="{id}" class="table table-bordered table-condensed table-hover">'.format(id=table_id))
+            output.append(
+                '<table id="{id}" class="table table-bordered table-condensed table-hover">'.format(id=table_id)
+            )
 
             output.append('<thead>')
             output.append('<tr>')
@@ -216,7 +224,9 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
         return ''.join(output)
 
     def get_json_list_name(self):
-        return self.json_list_name
+        if self.json_list_name:
+            return self.json_list_name
+        return '{}s'.format(self.model.__name__.lower())
 
     def get_search_default(self):
         return self.search_default
