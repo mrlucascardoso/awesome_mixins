@@ -1,11 +1,11 @@
 from braces.views import AjaxResponseMixin, JSONResponseMixin
 from braces.views._access import AccessMixin
-from django.urls import reverse_lazy
 from django.utils import six
 from django.views.generic import ListView
 from django.views.generic.list import BaseListView
 from awesome_mixins.utils.geral import parse_date
 from django.utils.safestring import mark_safe
+from django.conf import settings
 
 
 def get_order_filter(data=None):
@@ -29,6 +29,13 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
     add_btn = True
     add_button_url = '#'
     add_button_name = 'Add'
+    search_placeholder = None
+    translate = {
+        'search_placeholder': {
+            'en-us': 'Search for',
+            'pt-br': 'Busca por'
+        }
+    }
 
     def get_queryset(self):
         # import pdb; pdb.set_trace()
@@ -133,7 +140,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             output.append('<div class="box-header">')
             output.append('<div class="row">')
 
-            # Busca
+            # Search
             if self.add_btn:
                 output.append('<div class="col-xs-6">')
             else:
@@ -141,18 +148,24 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             output.append('<div class="input-group input-group-sm">')
 
             string_search = """
-            <input id="busca" type="text" class="form-control"
-                    placeholder="Busca por {placeholder}" style="height: 38px;">
+            <input id="am_search" type="text" class="form-control"
+                    placeholder="{string_search} {placeholder}" style="height: 38px;">
             """
             if self._active_tag:
-                string_search = string_search.format(placeholder=self._active_tag[2])
+                string_search = string_search.format(
+                    placeholder=self._active_tag[2],
+                    string_search=self.get_search_placeholder()
+                )
             else:
-                string_search = string_search.format(placeholder=self.search_default[2])
+                string_search = string_search.format(
+                    placeholder=self.search_default[2],
+                    string_search=self.get_search_placeholder()
+                )
 
             output.append(string_search)
             output.append('<span class="input-group-btn">')
             output.append("""
-                <button type="button" onclick="Busca()" class="btn btn-default" style="height: 38px;">
+                <button type="button" onclick="Search()" class="btn btn-default" style="height: 38px;">
                     <i class="glyphicon glyphicon-search"></i>
                 </button>
             """)
@@ -163,7 +176,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             # Add button
             if self.add_btn:
                 output.append('<div class="col-xs-6">')
-                output.append("""<a id="adicionar-button" class="btn btn-lg btn-primary
+                output.append("""<a id="am_add_button" class="btn btn-lg btn-primary
                  pull-right"
                  href="{url}"><i class="fa fa-plus"></i>{name_button}</a>""".format(
                     url=self.add_button_url,
@@ -230,3 +243,15 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
 
     def get_search_default(self):
         return self.search_default
+
+    def get_search_placeholder(self):
+        if self.search_placeholder:
+            return self.search_placeholder
+
+        try:
+            value = self.translate['search_placeholder'][settings.LANGUAGE_CODE]
+            return value
+        except KeyError:
+            pass
+
+        return 'Without support for this language, please set the search_placeholder in ListMixin'
