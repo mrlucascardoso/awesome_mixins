@@ -19,17 +19,19 @@ def get_order_filter(data=None):
 
 class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResponseMixin):
     """
-    Mixin para view de lista
+    Mixin for list view with saerch and order
     """
     json_list_name = None
     order_tags = None
     search_default = None
     _active_tag = None
-    default_order = None
     add_btn = True
     add_button_url = '#'
     add_button_name = 'Add'
     search_placeholder = None
+    search_id = None
+    table_id = None
+    num_pages = None
     translate = {
         'search_placeholder': {
             'en-us': 'Search for',
@@ -38,34 +40,29 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
     }
 
     def get_queryset(self):
-        # import pdb; pdb.set_trace()
-        # Verificando se o queryset ja esta definido
+        # Checking if exist defined a queryset
         if self.queryset is not None or (self.queryset is None and self.model is None):
-            # import pdb; pdb.set_trace()
             queryset = super(ListMixin, self).get_queryset()
         else:
             queryset = self.model._default_manager.all()
 
-        # pegando a ordenação padão do model utilizado
+        # Get default order by model
         ordering = self.get_ordering()
         if ordering:
             if isinstance(ordering, six.string_types):
                 ordering = (ordering,)
             queryset = queryset.order_by(*ordering)
 
-        # se existir tags de ordenação de verifica qual esta vindo na
-        # requisição para retornar a mesma filtrada e ordenada
+        # If there are any sort tags, it checks which one is in a request to return the same filtered and ordered.
         if self.order_tags:
             found = False
             for line in self.order_tags:
-                tag = line[0]
-                lookup = line[1]
+                lookup = line[0]
+                tag = '{}_order'.format(lookup)
                 if self.request.GET.get(tag, None):
                     found = True
-                    prop = tag.replace('_order', '')
-                    # import pdb; pdb.set_trace()
-                    if self.request.GET.get(prop, None):
-                        term = self.request.GET.get(prop, None)
+                    if self.request.GET.get(lookup, None):
+                        term = self.request.GET.get(lookup, None)
                         date = parse_date(term)
                         if date:
                             queryset = queryset.filter(**{lookup: date})
@@ -84,28 +81,30 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                     term = self.request.GET.get(self.search_default[0], None)
                     date = parse_date(term)
                     if date:
-                        queryset = queryset.filter(**{self.search_default[1]: date})
+                        queryset = queryset.filter(**{self.search_default[0]: date})
                     else:
                         if '|' in term:
                             queryset = queryset.filter(
-                                **{self.search_default[1] + '__icontains': term.replace('|', '')})
+                                **{self.search_default[0] + '__icontains': term.replace('|', '')})
                         else:
-                            queryset = queryset.filter(**{self.search_default[1] + '__istartswith': term})
+                            queryset = queryset.filter(**{self.search_default[0] + '__istartswith': term})
 
-                if self.default_order:
-                    queryset = queryset.order_by(self.default_order)
-                else:
-                    queryset = queryset.order_by(self.search_default[1])
+                queryset = queryset.order_by(self.search_default[1])
 
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super(ListMixin, self).get_context_data(**kwargs)
 
+        paginador = kwargs['paginator'] if 'paginator' in kwargs else None
+        self.num_pages = 1
+        if paginador:
+            self.num_pages = paginador.num_pages if paginador.num_pages > 0 else 1
+
         if self.order_tags:
             for tag in self.order_tags:
-                t = get_order_filter(self.request.GET.get(tag[0], None))
-                context[tag[0]] = t
+                t = get_order_filter(self.request.GET.get('{}_order'.format(tag[0]), None))
+                context['{}_order'.format(tag[0])] = t
                 if t:
                     self._active_tag = tag
 
@@ -117,14 +116,10 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
         return super(ListMixin, self).render_to_response(context, **response_kwargs)
 
     def get_ajax(self, request, *args, **kwargs):
-        json_dict = {self.get_json_list_name(): [obj.serialize() for obj in kwargs['object_list']]}
-        paginador = kwargs['paginator'] if 'paginator' in kwargs else None
-        num_pages = 1
-        if paginador:
-            num_pages = paginador.num_pages if paginador.num_pages > 0 else 1
-
-        json_dict['num_pages'] = num_pages
-        return self.render_json_response(json_dict)
+        return self.render_json_response({
+            self.get_json_list_name(): [obj.serialize() for obj in kwargs['object_list']],
+            'num_pages': self.num_pages
+        })
 
     def as_table(self):
         return mark_safe('\n'.join([
@@ -148,24 +143,26 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             output.append('<div class="input-group input-group-sm">')
 
             string_search = """
-            <input id="am_search" type="text" class="form-control"
+            <input id="{search_id}" type="text" class="form-control"
                     placeholder="{string_search} {placeholder}" style="height: 38px;">
             """
             if self._active_tag:
                 string_search = string_search.format(
-                    placeholder=self._active_tag[2],
-                    string_search=self.get_search_placeholder()
+                    placeholder=self._active_tag[1],
+                    string_search=self.get_search_placeholder(),
+                    search_id=self.get_search_id()
                 )
             else:
                 string_search = string_search.format(
                     placeholder=self.search_default[2],
-                    string_search=self.get_search_placeholder()
+                    string_search=self.get_search_placeholder(),
+                    search_id=self.get_search_id()
                 )
 
             output.append(string_search)
             output.append('<span class="input-group-btn">')
             output.append("""
-                <button type="button" onclick="Search()" class="btn btn-default" style="height: 38px;">
+                <button type="button" onclick="AmSearch()" class="btn btn-default" style="height: 38px;">
                     <i class="glyphicon glyphicon-search"></i>
                 </button>
             """)
@@ -198,7 +195,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             normal_row = """<th {width}><a href="?{tag}={ordering}">{name} {arrow}</a></th>"""
 
             output.append('<div class="box-body table-responsive no-padding">')
-            table_id = self.model.__name__.lower() + '_table'
+            table_id = self.get_table_id()
             output.append(
                 '<table id="{id}" class="table table-bordered table-condensed table-hover">'.format(id=table_id)
             )
@@ -206,12 +203,13 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             output.append('<thead>')
             output.append('<tr>')
             for tp in self.order_tags:
-                if len(tp) == 3:
-                    tag, lookup, name = tp
+                if len(tp) == 2:
+                    lookup, name = tp
                     width = ''
                 else:
-                    tag, lookup, name, width = tp
+                    lookup, name, width = tp
                     width = 'width={w}'.format(w=width)
+                tag = '{}_order'.format(lookup)
                 ordering = context[tag] if context[tag] else 'asc'
                 arrow = ''
                 if context[tag]:
@@ -236,6 +234,160 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
         output.append('</div>')
         return ''.join(output)
 
+    def as_statics(self):
+        table_id = self.get_table_id()
+        json_list_name = self.get_json_list_name()
+        search_id = self.get_search_id()
+        add_args = ''.join([', {}'.format(column[0]) for column in self.order_tags])[2:]
+        td_columns = ''.join(
+            ["<td nowrap><a href=\"#\">'+ (({field} != null) ? {field} : '') +'</a></td>".format(
+                    field=column[0]
+            ) for column in self.order_tags]
+        )
+        update_columns = ''.join([', data[i]["{}"]'.format(column[0]) for column in self.order_tags])[2:]
+
+        filters = ''.join([
+            "else if(url.indexOf('&{field}_order') != -1 || url.indexOf('?{field}_order') != -1){{filter = '&{field}=';}}".format(
+                field=column[0]
+            ) for column in self.order_tags
+        ])
+
+        if self._active_tag:
+            search_default = self._active_tag[0]
+        else:
+            search_default = self.search_default[0]
+
+        return mark_safe("""
+            <link rel="stylesheet" href="/static/awesome_mixins/css/list_view.css">
+            <script src="/static/awesome_mixins/js/twbs-pagination/jquery.twbsPagination.min.js"></script>
+            <script type="text/javascript">
+                function AmAddLine({add_args}){{
+                    $("#{table_id} tbody").append(
+                        '<tr>{td_columns}</tr>'
+                    );
+                }}
+
+                function AmClearTable(){{
+                    $('#{table_id} tbody tr').each(function(){{
+                        $(this).remove();
+                    }});
+                }}
+
+                function AmUpdateTable(data) {{
+                    AmClearTable();
+                    for(var i = 0; i < data.length; i++){{
+                        AmAddLine({update_columns});
+                    }}
+                }}
+
+                function AmCleanSearch() {{
+                    var url = window.location.href;
+                    url = url.replace("#", "");
+                    var filter = '';
+
+                    var search = $('#{search_id}').val();
+
+                    if (search != null && search != ''){{
+                        if(url.indexOf('_order') == -1){{
+                            filter = '?{search_default}=';
+                        }}{filters}
+
+                        filter = filter + search;
+                    }}
+
+                    return filter;
+                }}
+
+                function AmUpdatePage(page) {{
+                    var result;
+                    var self = $(this),
+                    url = AmToPage(page),
+                    ajax_req = $.ajax({{
+                        url: url,
+                        type: "GET",
+                        success: function(data, textStatus, algo) {{
+                            if(data['{json_list_name}'] != null){{
+                                AmUpdateTable(data['{json_list_name}']);
+                            }}
+                        }},
+                        error: function(data, textStatus) {{
+                            console.log(data);
+                        }}
+                    }});
+                }}
+
+                function AmToPage(p) {{
+                    var url = window.location.href;
+                    url = url.replace("#", "");
+                    if(url.indexOf('page') == -1 && url.indexOf('?') == -1){{
+                        if(AmCleanSearch() != ''){{
+                            return url + AmCleanSearch() + "&page=" + p;
+                        }}
+                        return url + "?page=" + p;
+                    }} else if(url.indexOf('page') == -1){{
+                        return url + AmCleanSearch() + "&page=" + p;
+                    }}else{{
+                        var i = url.indexOf('page') + 5;
+                        return url.replaceAt(i, "" + p + "");
+                    }}
+                }}
+
+                function AmSearch() {{
+                    var result;
+                    var self = $(this);
+                    url = window.location.href + AmCleanSearch();
+                    ajax_req = $.ajax({{
+                        url: url,
+                        type: "GET",
+                        success: function(data, textStatus, algo) {{
+                            if(data['{json_list_name}'] != null){{
+                                AmUpdateTable(data['{json_list_name}'])
+                                $('#pagination').twbsPagination('destroy');
+                                $('#pagination').twbsPagination({{
+                                    totalPages: data['num_pages'],
+                                    visiblePages: 3,
+                                    first: '<<',
+                                    prev: '<',
+                                    next: '>',
+                                    last: '>>',
+                                    onPageClick: function (event, page) {{
+                                        AmUpdatePage(page);
+                                    }}
+                                }}  );
+                            }}
+                        }},
+                        error: function(data, textStatus) {{
+                            console.log(data);
+                        }}
+                    }});
+                }}
+
+                $(window).load(function () {{
+                    $('#pagination').twbsPagination({{
+                        totalPages: {num_pages},
+                        visiblePages: 3,
+                        first: '<<',
+                        prev: '<',
+                        next: '>',
+                        last: '>>',
+                        onPageClick: function (event, page) {{
+                            AmUpdatePage(page);
+                        }}
+                    }});
+                }});
+            </script>
+        """.format(
+            table_id=table_id,
+            json_list_name=json_list_name,
+            search_id=search_id,
+            num_pages=self.num_pages,
+            add_args=add_args,
+            td_columns=td_columns,
+            update_columns=update_columns,
+            search_default=search_default,
+            filters=filters
+        ))
+
     def get_json_list_name(self):
         if self.json_list_name:
             return self.json_list_name
@@ -243,6 +395,12 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
 
     def get_search_default(self):
         return self.search_default
+
+    def get_table_id(self):
+        if self.table_id:
+            return self.table_id
+
+        return self.model.__name__.lower() + '_table'
 
     def get_search_placeholder(self):
         if self.search_placeholder:
@@ -255,3 +413,8 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             pass
 
         return 'Without support for this language, please set the search_placeholder in ListMixin'
+
+    def get_search_id(self):
+        if self.search_id:
+            return self.search_id
+        return 'am_search'
