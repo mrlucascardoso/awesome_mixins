@@ -1,0 +1,4 @@
+include LICENSE
+include README.md
+recursive-include awesome_mixins/static *
+recursive-include docs *
