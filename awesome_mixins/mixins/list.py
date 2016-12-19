@@ -32,6 +32,9 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
     search_id = None
     table_id = None
     num_pages = None
+    css_class = {
+        'table': 'table table-bordered table-condensed table-hover'
+    }
     translate = {
         'search_placeholder': {
             'en-us': 'Search for',
@@ -197,7 +200,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             output.append('<div class="box-body table-responsive no-padding">')
             table_id = self.get_table_id()
             output.append(
-                '<table id="{id}" class="table table-bordered table-condensed table-hover">'.format(id=table_id)
+                '<table id="{id}" class="{table_css}">'.format(id=table_id, table_css=self.css_class['table'])
             )
 
             output.append('<thead>')
