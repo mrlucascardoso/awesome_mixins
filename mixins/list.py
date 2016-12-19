@@ -56,8 +56,8 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
         # If there are any sort tags, it checks which one is in a request to return the same filtered and ordered.
         if self.order_tags:
             found = False
-            for line in self.order_tags:
-                lookup = line[0]
+            for line in self.get_order_tags():
+                lookup = line['lookup']
                 tag = '{}_order'.format(lookup)
                 if self.request.GET.get(tag, None):
                     found = True
@@ -102,11 +102,11 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             self.num_pages = paginador.num_pages if paginador.num_pages > 0 else 1
 
         if self.order_tags:
-            for tag in self.order_tags:
-                t = get_order_filter(self.request.GET.get('{}_order'.format(tag[0]), None))
-                context['{}_order'.format(tag[0])] = t
+            for line in self.get_order_tags():
+                t = get_order_filter(self.request.GET.get('{}_order'.format(line['lookup']), None))
+                context['{}_order'.format(line['lookup'])] = t
                 if t:
-                    self._active_tag = tag
+                    self._active_tag = line
 
         return context
 
@@ -148,7 +148,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             """
             if self._active_tag:
                 string_search = string_search.format(
-                    placeholder=self._active_tag[1],
+                    placeholder=self._active_tag['name'],
                     string_search=self.get_search_placeholder(),
                     search_id=self.get_search_id()
                 )
@@ -202,13 +202,10 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
 
             output.append('<thead>')
             output.append('<tr>')
-            for tp in self.order_tags:
-                if len(tp) == 2:
-                    lookup, name = tp
-                    width = ''
-                else:
-                    lookup, name, width = tp
-                    width = 'width={w}'.format(w=width)
+            for line in self.get_order_tags():
+                lookup = line['lookup']
+                name = line['name']
+                width = line['width']
                 tag = '{}_order'.format(lookup)
                 ordering = context[tag] if context[tag] else 'asc'
                 arrow = ''
@@ -238,22 +235,22 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
         table_id = self.get_table_id()
         json_list_name = self.get_json_list_name()
         search_id = self.get_search_id()
-        add_args = ''.join([', {}'.format(column[0]) for column in self.order_tags])[2:]
+        add_args = ''.join([', {}'.format(column['lookup']) for column in self.get_order_tags()])[2:]
         td_columns = ''.join(
-            ["<td nowrap><a href=\"#\">'+ (({field} != null) ? {field} : '') +'</a></td>".format(
-                    field=column[0]
-            ) for column in self.order_tags]
+            ["<td nowrap><a href=\"#\">'+ (({field} != null) ? {to_js_function} : '') +'</a></td>".format(
+                    field=column['lookup'], to_js_function=column['to_js_function']
+            ) for column in self.get_order_tags()]
         )
-        update_columns = ''.join([', data[i]["{}"]'.format(column[0]) for column in self.order_tags])[2:]
+        update_columns = ''.join([', data[i]["{}"]'.format(column['lookup']) for column in self.get_order_tags()])[2:]
 
         filters = ''.join([
             "else if(url.indexOf('&{field}_order') != -1 || url.indexOf('?{field}_order') != -1){{filter = '&{field}=';}}".format(
-                field=column[0]
-            ) for column in self.order_tags
+                field=column['lookup']
+            ) for column in self.get_order_tags()
         ])
 
         if self._active_tag:
-            search_default = self._active_tag[0]
+            search_default = self._active_tag['lookup']
         else:
             search_default = self.search_default[0]
 
@@ -418,3 +415,14 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
         if self.search_id:
             return self.search_id
         return 'am_search'
+
+    def get_order_tags(self):
+        return [
+            {
+                'lookup': dc['lookup'],
+                'name': dc['name'],
+                'width': 'width={}'.format(dc['width']) if 'width' in dc else '',
+                'js_function': dc['js_function'] if 'js_function' in dc else '',
+                'to_js_function': '{}({})'.format(dc['js_function'], dc['lookup']) if 'js_function' in dc else dc['lookup'],
+            } for dc in self.order_tags
+        ]
