@@ -33,7 +33,10 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
     table_id = None
     num_pages = None
     css_class = {
-        'table': 'table table-bordered table-condensed table-hover'
+        'table': 'table table-bordered table-condensed table-hover',
+        'div_header': 'box-header',
+        'div_body': 'box-body table-responsive no-padding',
+        'div_footer': 'box-footer clearfix',
     }
     translate = {
         'search_placeholder': {
@@ -135,7 +138,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
         fdiv = '</div>'
         output = []
         if self.order_tags:
-            output.append('<div class="box-header">')
+            output.append('<div class="{}">'.format(self.css_class['div_header']))
             output.append('<div class="row">')
 
             # Search
@@ -178,7 +181,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                 output.append('<div class="col-xs-6">')
                 output.append("""<a id="am_add_button" class="btn btn-lg btn-primary
                  pull-right"
-                 href="{url}"><i class="fa fa-plus"></i>{name_button}</a>""".format(
+                 href="{url}"><i class="glyphicon glyphicon-plus"></i>{name_button}</a>""".format(
                     url=self.add_button_url,
                     name_button=self.add_button_name
                 ))
@@ -197,7 +200,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             arrow_down = '<i class="glyphicon glyphicon-arrow-down" style="color: limegreen"></i>'
             normal_row = """<th {width}><a href="?{tag}={ordering}">{name} {arrow}</a></th>"""
 
-            output.append('<div class="box-body table-responsive no-padding">')
+            output.append('<div class="{}">'.format(self.css_class['div_body']))
             table_id = self.get_table_id()
             output.append(
                 '<table id="{id}" class="{table_css}">'.format(id=table_id, table_css=self.css_class['table'])
@@ -228,7 +231,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
 
     def _footer(self):
         output = []
-        output.append('<div class="box-footer clearfix">')
+        output.append('<div class="{}">'.format(self.css_class['div_footer']))
         output.append('<ul id="pagination">')
         output.append('</ul>')
         output.append('</div>')
