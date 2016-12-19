@@ -96,7 +96,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
     def get_context_data(self, **kwargs):
         context = super(ListMixin, self).get_context_data(**kwargs)
 
-        paginador = kwargs['paginator'] if 'paginator' in kwargs else None
+        paginador = context['paginator'] if 'paginator' in context else None
         self.num_pages = 1
         if paginador:
             self.num_pages = paginador.num_pages if paginador.num_pages > 0 else 1
