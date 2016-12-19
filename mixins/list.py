@@ -117,7 +117,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
 
     def get_ajax(self, request, *args, **kwargs):
         return self.render_json_response({
-            self.get_json_list_name(): [obj.serialize() for obj in kwargs['object_list']],
+            self.get_json_list_name(): [self.serialize(obj) for obj in kwargs['object_list']],
             'num_pages': self.num_pages
         })
 
@@ -426,3 +426,25 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                 'to_js_function': '{}({})'.format(dc['js_function'], dc['lookup']) if 'js_function' in dc else dc['lookup'],
             } for dc in self.order_tags
         ]
+
+    def serialize(self, obj):
+        result = {}
+        for line in self.get_order_tags():
+            fields = line['lookup'].split('__')
+            if len(fields) > 1:
+                fields.reverse()
+            att = self.do_serialize(fields, obj)
+            result[line['lookup']] = att
+        return result
+
+    def do_serialize(self, fields, obj):
+        try:
+            if len(fields) == 1:
+                field = fields.pop()
+                obj = getattr(obj, field)
+                return obj
+            field = fields.pop()
+            obj = getattr(obj, field)
+            return self.do_serialize(fields, obj)
+        except AttributeError:
+            return ''
