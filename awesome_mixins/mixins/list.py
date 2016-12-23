@@ -6,6 +6,7 @@ from django.views.generic.list import BaseListView
 from awesome_mixins.utils.geral import parse_date
 from django.utils.safestring import mark_safe
 from django.conf import settings
+import inspect
 
 
 def get_order_filter(data=None):
@@ -32,13 +33,12 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
     search_id = None
     table_id = None
     num_pages = None
-    css_class = {
-        'table': 'table table-bordered table-condensed table-hover',
-        'div_header': 'box-header',
-        'div_body': 'box-body table-responsive no-padding',
-        'div_footer': 'box-footer clearfix',
-    }
-    translate = {
+    css_template = 'admin_lte'
+    css_table = None
+    css_div_header = None
+    css_div_body = None
+    css_div_footer = None
+    _translate = {
         'search_placeholder': {
             'en-us': 'Search for',
             'pt-br': 'Busca por'
@@ -138,7 +138,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
         fdiv = '</div>'
         output = []
         if self.order_tags:
-            output.append('<div class="{}">'.format(self.css_class['div_header']))
+            output.append('<div class="{}">'.format(self.get_css_classes('div_header')))
             output.append('<div class="row">')
 
             # Search
@@ -200,10 +200,10 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             arrow_down = '<i class="glyphicon glyphicon-arrow-down" style="color: limegreen"></i>'
             normal_row = """<th {width}><a href="?{tag}={ordering}">{name} {arrow}</a></th>"""
 
-            output.append('<div class="{}">'.format(self.css_class['div_body']))
+            output.append('<div class="{}">'.format(self.get_css_classes('div_body')))
             table_id = self.get_table_id()
             output.append(
-                '<table id="{id}" class="{table_css}">'.format(id=table_id, table_css=self.css_class['table'])
+                '<table id="{id}" class="{table_css}">'.format(id=table_id, table_css=self.get_css_classes('table'))
             )
 
             output.append('<thead>')
@@ -231,7 +231,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
 
     def _footer(self):
         output = []
-        output.append('<div class="{}">'.format(self.css_class['div_footer']))
+        output.append('<div class="{}">'.format(self.get_css_classes('div_footer')))
         output.append('<ul id="pagination">')
         output.append('</ul>')
         output.append('</div>')
@@ -410,7 +410,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             return self.search_placeholder
 
         try:
-            value = self.translate['search_placeholder'][settings.LANGUAGE_CODE]
+            value = self.get_translate('search_placeholder', settings.LANGUAGE_CODE)
             return value
         except KeyError:
             pass
@@ -454,3 +454,38 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             return self.do_serialize(fields, obj)
         except AttributeError:
             return ''
+
+    def get_translate(self, option, value):
+        return self._translate[option][value]
+
+    def get_css_classes(self, key=None):
+        css_classes = {
+            'admin_lte': {
+                'table': 'table table-bordered table-condensed table-hover',
+                'div_header': 'box-header',
+                'div_body': 'box-body table-responsive no-padding',
+                'div_footer': 'box-footer clearfix',
+            }
+        }
+
+        if self.css_template:
+            data = css_classes[self.css_template]
+
+            for field, value in [a for a in inspect.getmembers(self) if a[0].startswith('css_') and a[0] != 'css_template']:
+                if value:
+                    data[field[4:]] = value
+
+            if key:
+                return data[key]
+
+            return data
+        else:
+            data = {
+                'table': self.css_table if self.css_table else '',
+                'div_header': self.css_div_header if self.css_div_header else '',
+                'div_body': self.css_div_body if self.css_div_body else '',
+                'div_footer': self.css_div_footer if self.css_div_footer else '',
+            }
+            if key:
+                return data[key]
+            return data
