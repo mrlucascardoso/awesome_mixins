@@ -23,7 +23,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
     Mixin for list view with saerch and order
     """
     json_list_name = None
-    order_tags = None
+    columns = None
     search_default = None
     _active_tag = None
     add_btn = True
@@ -60,9 +60,9 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             queryset = queryset.order_by(*ordering)
 
         # If there are any sort tags, it checks which one is in a request to return the same filtered and ordered.
-        if self.order_tags:
+        if self.columns:
             found = False
-            for line in self.get_order_tags():
+            for line in self.get_columns():
                 lookup = line['lookup']
                 tag = '{}_order'.format(lookup)
                 if self.request.GET.get(tag, None):
@@ -107,8 +107,8 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
         if paginador:
             self.num_pages = paginador.num_pages if paginador.num_pages > 0 else 1
 
-        if self.order_tags:
-            for line in self.get_order_tags():
+        if self.columns:
+            for line in self.get_columns():
                 t = get_order_filter(self.request.GET.get('{}_order'.format(line['lookup']), None))
                 context['{}_order'.format(line['lookup'])] = t
                 if t:
@@ -137,7 +137,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
     def _header(self):
         fdiv = '</div>'
         output = []
-        if self.order_tags:
+        if self.columns:
             output.append('<div class="{}">'.format(self.get_css_classes('div_header')))
             output.append('<div class="row">')
 
@@ -194,7 +194,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
     def _body(self):
         fdiv = '</div>'
         output = []
-        if self.order_tags:
+        if self.columns:
             context = self.get_context_data()
             arrow_up = '<i class="glyphicon glyphicon-arrow-up" style="color: red"></i>'
             arrow_down = '<i class="glyphicon glyphicon-arrow-down" style="color: limegreen"></i>'
@@ -208,7 +208,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
 
             output.append('<thead>')
             output.append('<tr>')
-            for line in self.get_order_tags():
+            for line in self.get_columns():
                 lookup = line['lookup']
                 name = line['name']
                 width = line['width']
@@ -241,18 +241,18 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
         table_id = self.get_table_id()
         json_list_name = self.get_json_list_name()
         search_id = self.get_search_id()
-        add_args = ''.join([', {}'.format(column['lookup']) for column in self.get_order_tags()])[2:]
+        add_args = ''.join([', {}'.format(column['lookup']) for column in self.get_columns()])[2:]
         td_columns = ''.join(
             ["<td nowrap><a href=\"#\">'+ (({field} != null) ? {to_js_function} : '') +'</a></td>".format(
                     field=column['lookup'], to_js_function=column['to_js_function']
-            ) for column in self.get_order_tags()]
+            ) for column in self.get_columns()]
         )
-        update_columns = ''.join([', data[i]["{}"]'.format(column['lookup']) for column in self.get_order_tags()])[2:]
+        update_columns = ''.join([', data[i]["{}"]'.format(column['lookup']) for column in self.get_columns()])[2:]
 
         filters = ''.join([
             "else if(url.indexOf('&{field}_order') != -1 || url.indexOf('?{field}_order') != -1){{filter = '&{field}=';}}".format(
                 field=column['lookup']
-            ) for column in self.get_order_tags()
+            ) for column in self.get_columns()
         ])
 
         if self._active_tag:
@@ -422,7 +422,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             return self.search_id
         return 'am_search'
 
-    def get_order_tags(self):
+    def get_columns(self):
         return [
             {
                 'lookup': dc['lookup'],
@@ -430,12 +430,12 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                 'width': 'width={}'.format(dc['width']) if 'width' in dc else '',
                 'js_function': dc['js_function'] if 'js_function' in dc else '',
                 'to_js_function': '{}({})'.format(dc['js_function'], dc['lookup']) if 'js_function' in dc else dc['lookup'],
-            } for dc in self.order_tags
+            } for dc in self.columns
         ]
 
     def serialize(self, obj):
         result = {}
-        for line in self.get_order_tags():
+        for line in self.get_columns():
             fields = line['lookup'].split('__')
             if len(fields) > 1:
                 fields.reverse()
