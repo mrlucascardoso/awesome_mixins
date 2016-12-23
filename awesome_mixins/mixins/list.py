@@ -365,19 +365,35 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                     }});
                 }}
 
-                $(window).load(function () {{
-                    $('#pagination').twbsPagination({{
-                        totalPages: {num_pages},
-                        visiblePages: 3,
-                        first: '<<',
-                        prev: '<',
-                        next: '>',
-                        last: '>>',
-                        onPageClick: function (event, page) {{
-                            AmUpdatePage(page);
-                        }}
+                try{{
+                    $(window).load(function () {{
+                        $('#pagination').twbsPagination({{
+                            totalPages: {num_pages},
+                            visiblePages: 3,
+                            first: '<<',
+                            prev: '<',
+                            next: '>',
+                            last: '>>',
+                            onPageClick: function (event, page) {{
+                                AmUpdatePage(page);
+                            }}
+                        }});
                     }});
-                }});
+                }}catch(err){{
+                    $(window).on('load', function () {{
+                        $('#pagination').twbsPagination({{
+                            totalPages: {num_pages},
+                            visiblePages: 3,
+                            first: '<<',
+                            prev: '<',
+                            next: '>',
+                            last: '>>',
+                            onPageClick: function (event, page) {{
+                                AmUpdatePage(page);
+                            }}
+                        }});
+                    }});
+                }}
             </script>
         """.format(
             table_id=table_id,
