@@ -38,6 +38,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
     css_div_header = None
     css_div_body = None
     css_div_footer = None
+    css_pagination = None
     _translate = {
         'search_placeholder': {
             'en-us': 'Search for',
@@ -232,7 +233,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
     def _footer(self):
         output = []
         output.append('<div class="{}">'.format(self.get_css_classes('div_footer')))
-        output.append('<ul id="pagination">')
+        output.append('<ul id="{}">'.format(self.get_css_classes('pagination')))
         output.append('</ul>')
         output.append('</div>')
         return ''.join(output)
@@ -481,6 +482,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                 'div_header': 'box-header',
                 'div_body': 'box-body table-responsive no-padding',
                 'div_footer': 'box-footer clearfix',
+                'pagination': 'pagination'
             }
         }
 
