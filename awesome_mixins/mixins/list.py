@@ -264,8 +264,10 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             search_default = self.search_default[0]
 
         detail_pk = ''
+        detail_pk_arg = ''
         if self.detail_url:
             detail_pk = 'id, '
+            detail_pk_arg = 'data[i]["id"]'
 
         return mark_safe("""
             <link rel="stylesheet" href="/static/awesome_mixins/css/list_view.css">
@@ -286,7 +288,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                 function AmUpdateTable(data) {{
                     AmClearTable();
                     for(var i = 0; i < data.length; i++){{
-                        AmAddLine({update_columns});
+                        AmAddLine({detail_pk_arg}{update_columns});
                     }}
                 }}
 
@@ -412,7 +414,8 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             update_columns=update_columns,
             search_default=search_default,
             filters=filters,
-            detail_pk=detail_pk
+            detail_pk=detail_pk,
+            detail_pk_arg=detail_pk_arg
         ))
 
     def get_json_list_name(self):
