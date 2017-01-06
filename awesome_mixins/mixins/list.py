@@ -29,6 +29,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
     add_btn = True
     add_button_url = '#'
     add_button_name = 'Add'
+    detail_url = None
     search_placeholder = None
     search_id = None
     table_id = None
@@ -244,8 +245,10 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
         search_id = self.get_search_id()
         add_args = ''.join([', {}'.format(column['lookup']) for column in self.get_columns()])[2:]
         td_columns = ''.join(
-            ["<td nowrap><a href=\"#\">'+ (({field} != null) ? {to_js_function} : '') +'</a></td>".format(
-                    field=column['lookup'], to_js_function=column['to_js_function']
+            ["<td nowrap><a href=\"{detail_url}\">'+ (({field} != null) ? {to_js_function} : '') +'</a></td>".format(
+                    field=column['lookup'],
+                    to_js_function=column['to_js_function'],
+                    detail_url=self.detail_url if self.detail_url else '#'
             ) for column in self.get_columns()]
         )
         update_columns = ''.join([', data[i]["{}"]'.format(column['lookup']) for column in self.get_columns()])[2:]
