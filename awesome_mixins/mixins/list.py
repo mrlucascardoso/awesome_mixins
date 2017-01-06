@@ -267,7 +267,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
         detail_pk_arg = ''
         if self.detail_url:
             detail_pk = 'id, '
-            detail_pk_arg = 'data[i]["id"]'
+            detail_pk_arg = 'data[i]["id"], '
 
         return mark_safe("""
             <link rel="stylesheet" href="/static/awesome_mixins/css/list_view.css">

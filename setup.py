@@ -9,7 +9,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='awesome-mixins',
-    version='0.12',
+    version='0.13',
     packages=find_packages(),
     install_requires=[
         'django-braces',
