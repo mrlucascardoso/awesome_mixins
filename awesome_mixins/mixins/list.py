@@ -103,7 +103,6 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
 
     def get_context_data(self, **kwargs):
         context = super(ListMixin, self).get_context_data(**kwargs)
-
         paginador = context['paginator'] if 'paginator' in context else None
         self.num_pages = 1
         if paginador:
@@ -264,11 +263,15 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
         else:
             search_default = self.search_default[0]
 
+        detail_pk = ''
+        if self.detail_url:
+            detail_pk = 'id, '
+
         return mark_safe("""
             <link rel="stylesheet" href="/static/awesome_mixins/css/list_view.css">
             <script src="/static/awesome_mixins/js/twbs-pagination/jquery.twbsPagination.min.js"></script>
             <script type="text/javascript">
-                function AmAddLine({add_args}){{
+                function AmAddLine({detail_pk}{add_args}){{
                     $("#{table_id} tbody").append(
                         '<tr>{td_columns}</tr>'
                     );
@@ -408,7 +411,8 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             td_columns=td_columns,
             update_columns=update_columns,
             search_default=search_default,
-            filters=filters
+            filters=filters,
+            detail_pk=detail_pk
         ))
 
     def get_json_list_name(self):
@@ -461,6 +465,9 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                 fields.reverse()
             att = self.do_serialize(fields, obj)
             result[line['lookup']] = att
+
+        if self.detail_url:
+            result['id'] = obj.id
         return result
 
     def do_serialize(self, fields, obj):
@@ -506,6 +513,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                 'div_header': self.css_div_header if self.css_div_header else '',
                 'div_body': self.css_div_body if self.css_div_body else '',
                 'div_footer': self.css_div_footer if self.css_div_footer else '',
+                'pagination': self.css_pagination if self.css_pagination else ''
             }
             if key:
                 return data[key]
