@@ -8,14 +8,14 @@ with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
-    name='Awesome Mixins',
-    version='0.1',
+    name='awesome-mixins',
+    version='0.13',
     packages=find_packages(),
     install_requires=[
         'django-braces',
     ],
     include_package_data=True,
-    license='GNU License',
+    license='MIT',
     description='Set of the mixins for class based view on django.',
     long_description=README,
     url='https://github.com/MrLucasCardoso/awesome_mixins',
@@ -26,7 +26,7 @@ setup(
         'Framework :: Django',
         'Framework :: Django :: 1.10',
         'Intended Audience :: Developers',
-        'License :: GNU License',
+        'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',

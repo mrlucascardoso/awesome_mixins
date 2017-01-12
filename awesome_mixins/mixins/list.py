@@ -6,6 +6,7 @@ from django.views.generic.list import BaseListView
 from awesome_mixins.utils.geral import parse_date
 from django.utils.safestring import mark_safe
 from django.conf import settings
+import inspect
 
 
 def get_order_filter(data=None):
@@ -22,17 +23,24 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
     Mixin for list view with saerch and order
     """
     json_list_name = None
-    order_tags = None
+    columns = None
     search_default = None
     _active_tag = None
     add_btn = True
     add_button_url = '#'
     add_button_name = 'Add'
+    detail_url = None
     search_placeholder = None
     search_id = None
     table_id = None
     num_pages = None
-    translate = {
+    css_template = 'admin_lte'
+    css_table = None
+    css_div_header = None
+    css_div_body = None
+    css_div_footer = None
+    css_pagination = None
+    _translate = {
         'search_placeholder': {
             'en-us': 'Search for',
             'pt-br': 'Busca por'
@@ -54,9 +62,9 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             queryset = queryset.order_by(*ordering)
 
         # If there are any sort tags, it checks which one is in a request to return the same filtered and ordered.
-        if self.order_tags:
+        if self.columns:
             found = False
-            for line in self.get_order_tags():
+            for line in self.get_columns():
                 lookup = line['lookup']
                 tag = '{}_order'.format(lookup)
                 if self.request.GET.get(tag, None):
@@ -95,14 +103,13 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
 
     def get_context_data(self, **kwargs):
         context = super(ListMixin, self).get_context_data(**kwargs)
-
-        paginador = kwargs['paginator'] if 'paginator' in kwargs else None
+        paginador = context['paginator'] if 'paginator' in context else None
         self.num_pages = 1
         if paginador:
             self.num_pages = paginador.num_pages if paginador.num_pages > 0 else 1
 
-        if self.order_tags:
-            for line in self.get_order_tags():
+        if self.columns:
+            for line in self.get_columns():
                 t = get_order_filter(self.request.GET.get('{}_order'.format(line['lookup']), None))
                 context['{}_order'.format(line['lookup'])] = t
                 if t:
@@ -131,8 +138,8 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
     def _header(self):
         fdiv = '</div>'
         output = []
-        if self.order_tags:
-            output.append('<div class="box-header">')
+        if self.columns:
+            output.append('<div class="{}">'.format(self.get_css_classes('div_header')))
             output.append('<div class="row">')
 
             # Search
@@ -175,7 +182,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                 output.append('<div class="col-xs-6">')
                 output.append("""<a id="am_add_button" class="btn btn-lg btn-primary
                  pull-right"
-                 href="{url}"><i class="fa fa-plus"></i>{name_button}</a>""".format(
+                 href="{url}"><i class="glyphicon glyphicon-plus"></i>{name_button}</a>""".format(
                     url=self.add_button_url,
                     name_button=self.add_button_name
                 ))
@@ -188,21 +195,21 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
     def _body(self):
         fdiv = '</div>'
         output = []
-        if self.order_tags:
+        if self.columns:
             context = self.get_context_data()
             arrow_up = '<i class="glyphicon glyphicon-arrow-up" style="color: red"></i>'
             arrow_down = '<i class="glyphicon glyphicon-arrow-down" style="color: limegreen"></i>'
             normal_row = """<th {width}><a href="?{tag}={ordering}">{name} {arrow}</a></th>"""
 
-            output.append('<div class="box-body table-responsive no-padding">')
+            output.append('<div class="{}">'.format(self.get_css_classes('div_body')))
             table_id = self.get_table_id()
             output.append(
-                '<table id="{id}" class="table table-bordered table-condensed table-hover">'.format(id=table_id)
+                '<table id="{id}" class="{table_css}">'.format(id=table_id, table_css=self.get_css_classes('table'))
             )
 
             output.append('<thead>')
             output.append('<tr>')
-            for line in self.get_order_tags():
+            for line in self.get_columns():
                 lookup = line['lookup']
                 name = line['name']
                 width = line['width']
@@ -225,8 +232,8 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
 
     def _footer(self):
         output = []
-        output.append('<div class="box-footer clearfix">')
-        output.append('<ul id="pagination">')
+        output.append('<div class="{}">'.format(self.get_css_classes('div_footer')))
+        output.append('<ul id="{}">'.format(self.get_css_classes('pagination')))
         output.append('</ul>')
         output.append('</div>')
         return ''.join(output)
@@ -235,18 +242,20 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
         table_id = self.get_table_id()
         json_list_name = self.get_json_list_name()
         search_id = self.get_search_id()
-        add_args = ''.join([', {}'.format(column['lookup']) for column in self.get_order_tags()])[2:]
+        add_args = ''.join([', {}'.format(column['lookup']) for column in self.get_columns()])[2:]
         td_columns = ''.join(
-            ["<td nowrap><a href=\"#\">'+ (({field} != null) ? {to_js_function} : '') +'</a></td>".format(
-                    field=column['lookup'], to_js_function=column['to_js_function']
-            ) for column in self.get_order_tags()]
+            ["<td nowrap><a href=\"{detail_url}\">'+ (({field} != null) ? {to_js_function} : '') +'</a></td>".format(
+                    field=column['lookup'],
+                    to_js_function=column['to_js_function'],
+                    detail_url=self.detail_url if self.detail_url else '#'
+            ) for column in self.get_columns()]
         )
-        update_columns = ''.join([', data[i]["{}"]'.format(column['lookup']) for column in self.get_order_tags()])[2:]
+        update_columns = ''.join([', data[i]["{}"]'.format(column['lookup']) for column in self.get_columns()])[2:]
 
         filters = ''.join([
             "else if(url.indexOf('&{field}_order') != -1 || url.indexOf('?{field}_order') != -1){{filter = '&{field}=';}}".format(
                 field=column['lookup']
-            ) for column in self.get_order_tags()
+            ) for column in self.get_columns()
         ])
 
         if self._active_tag:
@@ -254,11 +263,17 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
         else:
             search_default = self.search_default[0]
 
+        detail_pk = ''
+        detail_pk_arg = ''
+        if self.detail_url:
+            detail_pk = 'id, '
+            detail_pk_arg = 'data[i]["id"], '
+
         return mark_safe("""
             <link rel="stylesheet" href="/static/awesome_mixins/css/list_view.css">
             <script src="/static/awesome_mixins/js/twbs-pagination/jquery.twbsPagination.min.js"></script>
             <script type="text/javascript">
-                function AmAddLine({add_args}){{
+                function AmAddLine({detail_pk}{add_args}){{
                     $("#{table_id} tbody").append(
                         '<tr>{td_columns}</tr>'
                     );
@@ -273,7 +288,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                 function AmUpdateTable(data) {{
                     AmClearTable();
                     for(var i = 0; i < data.length; i++){{
-                        AmAddLine({update_columns});
+                        AmAddLine({detail_pk_arg}{update_columns});
                     }}
                 }}
 
@@ -359,19 +374,35 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                     }});
                 }}
 
-                $(window).load(function () {{
-                    $('#pagination').twbsPagination({{
-                        totalPages: {num_pages},
-                        visiblePages: 3,
-                        first: '<<',
-                        prev: '<',
-                        next: '>',
-                        last: '>>',
-                        onPageClick: function (event, page) {{
-                            AmUpdatePage(page);
-                        }}
+                try{{
+                    $(window).load(function () {{
+                        $('#pagination').twbsPagination({{
+                            totalPages: {num_pages},
+                            visiblePages: 3,
+                            first: '<<',
+                            prev: '<',
+                            next: '>',
+                            last: '>>',
+                            onPageClick: function (event, page) {{
+                                AmUpdatePage(page);
+                            }}
+                        }});
                     }});
-                }});
+                }}catch(err){{
+                    $(window).on('load', function () {{
+                        $('#pagination').twbsPagination({{
+                            totalPages: {num_pages},
+                            visiblePages: 3,
+                            first: '<<',
+                            prev: '<',
+                            next: '>',
+                            last: '>>',
+                            onPageClick: function (event, page) {{
+                                AmUpdatePage(page);
+                            }}
+                        }});
+                    }});
+                }}
             </script>
         """.format(
             table_id=table_id,
@@ -382,7 +413,9 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             td_columns=td_columns,
             update_columns=update_columns,
             search_default=search_default,
-            filters=filters
+            filters=filters,
+            detail_pk=detail_pk,
+            detail_pk_arg=detail_pk_arg
         ))
 
     def get_json_list_name(self):
@@ -404,7 +437,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             return self.search_placeholder
 
         try:
-            value = self.translate['search_placeholder'][settings.LANGUAGE_CODE]
+            value = self.get_translate('search_placeholder', settings.LANGUAGE_CODE)
             return value
         except KeyError:
             pass
@@ -416,7 +449,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             return self.search_id
         return 'am_search'
 
-    def get_order_tags(self):
+    def get_columns(self):
         return [
             {
                 'lookup': dc['lookup'],
@@ -424,17 +457,20 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                 'width': 'width={}'.format(dc['width']) if 'width' in dc else '',
                 'js_function': dc['js_function'] if 'js_function' in dc else '',
                 'to_js_function': '{}({})'.format(dc['js_function'], dc['lookup']) if 'js_function' in dc else dc['lookup'],
-            } for dc in self.order_tags
+            } for dc in self.columns
         ]
 
     def serialize(self, obj):
         result = {}
-        for line in self.get_order_tags():
+        for line in self.get_columns():
             fields = line['lookup'].split('__')
             if len(fields) > 1:
                 fields.reverse()
             att = self.do_serialize(fields, obj)
             result[line['lookup']] = att
+
+        if self.detail_url:
+            result['id'] = obj.id
         return result
 
     def do_serialize(self, fields, obj):
@@ -448,3 +484,40 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             return self.do_serialize(fields, obj)
         except AttributeError:
             return ''
+
+    def get_translate(self, option, value):
+        return self._translate[option][value]
+
+    def get_css_classes(self, key=None):
+        css_classes = {
+            'admin_lte': {
+                'table': 'table table-bordered table-condensed table-hover',
+                'div_header': 'box-header',
+                'div_body': 'box-body table-responsive no-padding',
+                'div_footer': 'box-footer clearfix',
+                'pagination': 'pagination'
+            }
+        }
+
+        if self.css_template:
+            data = css_classes[self.css_template]
+
+            for field, value in [a for a in inspect.getmembers(self) if a[0].startswith('css_') and a[0] != 'css_template']:
+                if value:
+                    data[field[4:]] = value
+
+            if key:
+                return data[key]
+
+            return data
+        else:
+            data = {
+                'table': self.css_table if self.css_table else '',
+                'div_header': self.css_div_header if self.css_div_header else '',
+                'div_body': self.css_div_body if self.css_div_body else '',
+                'div_footer': self.css_div_footer if self.css_div_footer else '',
+                'pagination': self.css_pagination if self.css_pagination else ''
+            }
+            if key:
+                return data[key]
+            return data
