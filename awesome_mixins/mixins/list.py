@@ -380,10 +380,10 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                         $('#pagination').twbsPagination({{
                             totalPages: {num_pages},
                             visiblePages: 3,
-                            first: '<<',
-                            prev: '<',
-                            next: '>',
-                            last: '>>',
+                            first: '{pagination_labels_first}',
+                            prev: '{pagination_labels_prev}',
+                            next: '{pagination_labels_next}',
+                            last: '{pagination_labels_last}',
                             onPageClick: function (event, page) {{
                                 AmUpdatePage(page);
                             }}
@@ -394,10 +394,10 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                         $('#pagination').twbsPagination({{
                             totalPages: {num_pages},
                             visiblePages: 3,
-                            first: '<<',
-                            prev: '<',
-                            next: '>',
-                            last: '>>',
+                            first: '{pagination_labels_first}',
+                            prev: '{pagination_labels_prev}',
+                            next: '{pagination_labels_next}',
+                            last: '{pagination_labels_last}',
                             onPageClick: function (event, page) {{
                                 AmUpdatePage(page);
                             }}
