@@ -40,6 +40,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
     css_div_body = None
     css_div_footer = None
     css_pagination = None
+    pagination_labels = {'prev':'<', 'next':'>', 'first':'<<', 'last':'>>'}
     _translate = {
         'search_placeholder': {
             'en-us': 'Search for',
@@ -358,10 +359,10 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                                 $('#pagination').twbsPagination({{
                                     totalPages: data['num_pages'],
                                     visiblePages: 3,
-                                    first: '<<',
-                                    prev: '<',
-                                    next: '>',
-                                    last: '>>',
+                                    first: '{pagination_labels_first}',
+                                    prev: '{pagination_labels_prev}',
+                                    next: '{pagination_labels_next}',
+                                    last: '{pagination_labels_last}',
                                     onPageClick: function (event, page) {{
                                         AmUpdatePage(page);
                                     }}
@@ -415,7 +416,11 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             search_default=search_default,
             filters=filters,
             detail_pk=detail_pk,
-            detail_pk_arg=detail_pk_arg
+            detail_pk_arg=detail_pk_arg,
+            pagination_labels_last=self.pagination_labels['last'],
+            pagination_labels_first=self.pagination_labels['first'],
+            pagination_labels_prev=self.pagination_labels['prev'],
+            pagination_labels_next=self.pagination_labels['next']
         ))
 
     def get_json_list_name(self):
