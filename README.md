@@ -7,6 +7,6 @@ Coming soon... [DOCS](https://mrlucascardoso.github.io/awesome-mixins-docs/) <- 
 
 At the moment us only have ListMixin available :disappointed_relieved:, but I'm arranging to improve and add new functions to the project.
  
-<!--![](http://www.reactiongifs.us/wp-content/uploads/2013/10/nuh_uh_conan_obrien.gif)-->
+![](https://media.tenor.co/images/64d26d582e2e5aedf9ce035c63e1f1d9/tenor.gif)
 
 Feel free to contribute :thumbsup:
