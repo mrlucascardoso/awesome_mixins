@@ -27,6 +27,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
     search_default = None
     _active_tag = None
     add_btn = True
+    visible_pages = 3
     add_button_url = '#'
     add_button_name = 'Add'
     detail_url = None
@@ -358,7 +359,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                                 $('#pagination').twbsPagination('destroy');
                                 $('#pagination').twbsPagination({{
                                     totalPages: data['num_pages'],
-                                    visiblePages: 3,
+                                    visiblePages: {visible_pages},
                                     first: '{pagination_labels_first}',
                                     prev: '{pagination_labels_prev}',
                                     next: '{pagination_labels_next}',
@@ -379,7 +380,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                     $(window).load(function () {{
                         $('#pagination').twbsPagination({{
                             totalPages: {num_pages},
-                            visiblePages: 3,
+                            visiblePages: {visible_pages},
                             first: '{pagination_labels_first}',
                             prev: '{pagination_labels_prev}',
                             next: '{pagination_labels_next}',
@@ -393,7 +394,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
                     $(window).on('load', function () {{
                         $('#pagination').twbsPagination({{
                             totalPages: {num_pages},
-                            visiblePages: 3,
+                            visiblePages: {visible_pages},
                             first: '{pagination_labels_first}',
                             prev: '{pagination_labels_prev}',
                             next: '{pagination_labels_next}',
@@ -420,7 +421,8 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             pagination_labels_last=self.pagination_labels['last'],
             pagination_labels_first=self.pagination_labels['first'],
             pagination_labels_prev=self.pagination_labels['prev'],
-            pagination_labels_next=self.pagination_labels['next']
+            pagination_labels_next=self.pagination_labels['next'],
+            visible_pages=self.visible_pages,
         ))
 
     def get_json_list_name(self):
