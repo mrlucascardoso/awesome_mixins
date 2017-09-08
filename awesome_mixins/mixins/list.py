@@ -1,3 +1,4 @@
+from django.contrib.staticfiles.templatetags.staticfiles import static
 from braces.views import AjaxResponseMixin, JSONResponseMixin
 from braces.views._access import AccessMixin
 from django.utils import six
@@ -272,8 +273,8 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             detail_pk_arg = 'data[i]["id"], '
 
         return mark_safe("""
-            <link rel="stylesheet" href="/static/awesome_mixins/css/list_view.css">
-            <script src="/static/awesome_mixins/js/twbs-pagination/jquery.twbsPagination.min.js"></script>
+            <link rel="stylesheet" href="{awesome_css}">
+            <script src="{awesome_twbs}"></script>
             <script type="text/javascript">
                 function AmAddLine({detail_pk}{add_args}){{
                     $("#{table_id} tbody").append(
@@ -423,6 +424,8 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             pagination_labels_prev=self.pagination_labels['prev'],
             pagination_labels_next=self.pagination_labels['next'],
             visible_pages=self.visible_pages,
+            awesome_css=static('awesome_mixins/css/list_view.css'),
+            awesome_twbs=static('awesome_mixins/js/twbs-pagination/jquery.twbsPagination.min.js')
         ))
 
     def get_json_list_name(self):
