@@ -269,8 +269,8 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
         detail_pk = ''
         detail_pk_arg = ''
         if self.detail_url:
-            detail_pk = 'id, '
-            detail_pk_arg = 'data[i]["id"], '
+            detail_pk = 'pk, '
+            detail_pk_arg = 'data[i]["pk"], '
 
         return mark_safe("""
             <link rel="stylesheet" href="{awesome_css}">
@@ -480,7 +480,7 @@ class ListMixin(ListView, AccessMixin, BaseListView, AjaxResponseMixin, JSONResp
             result[line['lookup']] = att
 
         if self.detail_url:
-            result['id'] = obj.id
+            result['pk'] = obj.pk
         return result
 
     def do_serialize(self, fields, obj):
